@@ -1,5 +1,3 @@
-from future import standard_library
-standard_library.install_aliases()
 from builtins import str
 from builtins import range
 import base64
@@ -7,8 +5,9 @@ import gevent
 import gevent.pywsgi
 import random
 import unittest
+import six
 from copy import copy
-from io import StringIO
+from io import BytesIO
 
 from locust import events
 from locust.stats import global_stats
@@ -83,7 +82,7 @@ def do_redirect():
 
 @app.route("/basic_auth")
 def basic_auth():
-    auth = base64.b64decode(request.headers.get("Authorization").replace("Basic ", ""))
+    auth = base64.b64decode(request.headers.get("Authorization").replace("Basic ", "")).decode('UTF-8')
     if auth == "locust:menace":
         return "Authorized"
     resp = make_response("401 Authorization Required", 401)
@@ -92,7 +91,7 @@ def basic_auth():
 
 @app.route("/no_content_length")
 def no_content_length():
-    r = send_file(StringIO("This response does not have content-length in the header"), add_etags=False)
+    r = send_file(BytesIO("This response does not have content-length in the header".encode('UTF-8')), add_etags=False)
     return r
 
 @app.errorhandler(404)
@@ -124,7 +123,7 @@ class LocustTestCase(unittest.TestCase):
                 self._event_handlers[event] = copy(event._handlers)
                       
     def tearDown(self):
-        for event, handlers in self._event_handlers.items():
+        for event, handlers in six.iteritems(self._event_handlers):
             event._handlers = handlers
     
     def assertIn(self, member, container, msg=None):
